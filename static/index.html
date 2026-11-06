@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Downloader</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    body { background: radial-gradient(1200px 600px at 50% -10%, #3b1d8f55, transparent), #0b0b14; }
+    .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(12px); }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 antialiased">
+  <nav class="mx-auto max-w-3xl px-4 pt-6 flex justify-center gap-2 text-sm">
+    <a href="/" class="rounded-full bg-white/10 px-4 py-1.5 text-white">Single video</a>
+    <a href="/playlist.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Profile / Playlist</a>
+  </nav>
+  <main class="mx-auto max-w-3xl px-4 py-12">
+    <header class="text-center mb-10">
+      <div class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-lg shadow-violet-900/50">
+        <svg class="h-7 w-7 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></svg>
+      </div>
+      <h1 class="mt-4 text-4xl font-extrabold tracking-tight text-white">Video Downloader</h1>
+      <p class="mt-2 text-slate-400">Paste any link. We find the video and save it in Full HD.</p>
+    </header>
+
+    <!-- URL input -->
+    <form id="form" class="glass rounded-2xl p-3 flex flex-col sm:flex-row gap-3">
+      <input id="url" type="text" required placeholder="https://… paste a video, reel or page URL"
+        class="flex-1 rounded-xl bg-black/40 px-4 py-3 text-white placeholder-slate-500 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-violet-500" />
+      <button id="findBtn" class="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50 transition">
+        Find video
+      </button>
+    </form>
+
+    <p id="error" class="hidden mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"></p>
+
+    <!-- Result card -->
+    <section id="result" class="hidden glass rounded-2xl mt-6 overflow-hidden">
+      <div class="flex flex-col sm:flex-row">
+        <div class="sm:w-56 shrink-0 bg-black/40">
+          <img id="thumb" alt="" class="h-full w-full object-cover aspect-video sm:aspect-auto" />
+        </div>
+        <div class="p-5 flex-1 min-w-0">
+          <h2 id="title" class="font-semibold text-white text-lg line-clamp-2"></h2>
+          <p id="meta" class="mt-1 text-sm text-slate-400"></p>
+
+          <label class="mt-4 block text-xs uppercase tracking-wider text-slate-500">Quality</label>
+          <select id="quality" class="mt-1 w-full rounded-xl bg-black/40 px-4 py-3 text-white ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-violet-500"></select>
+
+          <button id="dlBtn" class="mt-4 w-full rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-black hover:bg-emerald-400 disabled:opacity-50 transition">
+            Download
+          </button>
+
+          <div id="progress" class="hidden mt-4">
+            <div class="h-2 w-full overflow-hidden rounded-full bg-white/10">
+              <div id="bar" class="h-full w-0 bg-gradient-to-r from-violet-500 to-emerald-400 transition-all"></div>
+            </div>
+            <p id="status" class="mt-2 text-sm text-slate-400"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Library -->
+    <section class="mt-10">
+      <div class="flex items-end justify-between mb-3">
+        <h3 class="text-lg font-semibold text-white">Downloaded videos</h3>
+        <span id="folder" class="text-xs text-slate-500 truncate max-w-[60%]"></span>
+      </div>
+      <ul id="files" class="space-y-2"></ul>
+    </section>
+  </main>
+
+<script>
+const $ = id => document.getElementById(id);
+let currentUrl = '';
+
+const fmtSize = b => b > 1e9 ? (b/1e9).toFixed(2)+' GB' : (b/1e6).toFixed(1)+' MB';
+const fmtTime = s => s ? new Date(s*1000).toISOString().substr(s>=3600?11:14, s>=3600?8:5) : '';
+const showError = m => { $('error').textContent = m; $('error').classList.toggle('hidden', !m); };
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.detail || 'Something went wrong.');
+  return data;
+}
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  showError(''); $('result').classList.add('hidden');
+  $('findBtn').disabled = true; $('findBtn').textContent = 'Searching…';
+  try {
+    const d = await api('/api/info', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url: $('url').value}) });
+    currentUrl = d.url;
+    $('thumb').src = d.thumbnail || '';
+    $('title').textContent = d.title;
+    $('meta').textContent = [d.site, d.uploader, fmtTime(d.duration)].filter(Boolean).join(' · ');
+    const q = $('quality'); q.innerHTML = '';
+    const opts = [];
+    const max = d.max_height || 0;
+    [2160,1440,1080,720,480,360].forEach(h => { if (!max || h <= max || (h===1080)) opts.push([String(h), h===1080 ? '1080p — Full HD' : h===2160 ? '2160p — 4K' : h===1440 ? '1440p — 2K' : h+'p']); });
+    if (max && !opts.some(o => +o[0] === max) && max < 360) opts.push([String(max), max+'p']);
+    opts.push(['best','Best available'], ['audio','Audio only (MP3)']);
+    opts.forEach(([v,l]) => q.add(new Option(l, v)));
+    q.value = max && max < 1080 ? 'best' : '1080';
+    $('progress').classList.add('hidden');
+    $('result').classList.remove('hidden');
+  } catch (err) { showError(err.message); }
+  $('findBtn').disabled = false; $('findBtn').textContent = 'Find video';
+});
+
+$('dlBtn').addEventListener('click', async () => {
+  showError('');
+  $('dlBtn').disabled = true;
+  $('progress').classList.remove('hidden'); $('bar').style.width = '0%'; $('status').textContent = 'Starting…';
+  try {
+    const { job_id } = await api('/api/download', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url: currentUrl, quality: $('quality').value}) });
+    while (true) {
+      await new Promise(r => setTimeout(r, 700));
+      const j = await api('/api/progress/' + job_id);
+      $('bar').style.width = (j.percent || 0) + '%';
+      if (j.status === 'error') throw new Error(j.error);
+      if (j.status === 'done') {
+        $('status').innerHTML = `✅ Saved: <span class="text-white">${j.filename}</span> (${fmtSize(j.size)})`;
+        loadFiles(); break;
+      }
+      const sp = j.speed ? ` · ${(j.speed/1e6).toFixed(1)} MB/s` : '';
+      const eta = j.eta ? ` · ${j.eta}s left` : '';
+      $('status').textContent = j.status === 'processing' ? 'Merging video + audio…' : `${j.status} ${j.percent||0}%${sp}${eta}`;
+    }
+  } catch (err) { showError(err.message); $('progress').classList.add('hidden'); }
+  $('dlBtn').disabled = false;
+});
+
+async function loadFiles() {
+  const d = await api('/api/downloads');
+  $('folder').textContent = d.folder;
+  const ul = $('files'); ul.innerHTML = '';
+  if (!d.files.length) { ul.innerHTML = '<li class="glass rounded-xl px-4 py-3 text-sm text-slate-500">Nothing yet.</li>'; return; }
+  d.files.forEach(f => {
+    const li = document.createElement('li');
+    li.className = 'glass rounded-xl px-4 py-3 flex items-center gap-3';
+    const enc = encodeURIComponent(f.name);
+    li.innerHTML = `<span class="flex-1 min-w-0 truncate text-sm text-white"></span>
+      <span class="text-xs text-slate-500">${fmtSize(f.size)}</span>
+      <a href="/api/files/${enc}" class="rounded-lg bg-white/10 px-3 py-1 text-xs hover:bg-white/20">Save</a>
+      <button class="rounded-lg bg-red-500/20 px-3 py-1 text-xs text-red-300 hover:bg-red-500/30">Delete</button>`;
+    li.firstElementChild.textContent = f.name;
+    li.querySelector('button').onclick = async () => { await api('/api/files/' + enc, {method:'DELETE'}); loadFiles(); };
+    ul.appendChild(li);
+  });
+}
+loadFiles();
+</script>
+</body>
+</html>
