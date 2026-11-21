@@ -3,3 +3,5 @@ uvicorn[standard]>=0.29
 yt-dlp[default,curl-cffi]
 imageio-ffmpeg
 requests
+anthropic  # optional: Claude-written Facebook titles/hashtags
+playwright>=1.40  # SSFlix dynamic player discovery

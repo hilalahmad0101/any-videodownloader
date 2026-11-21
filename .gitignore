@@ -3,3 +3,5 @@ __pycache__/
 download/
 .DS_Store
 *.pyc
+history.db
+.env

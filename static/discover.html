@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Discover Videos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    body { background: radial-gradient(1200px 600px at 50% -10%, #3b1d8f55, transparent), #0b0b14; }
+    .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(12px); }
+    input[type=checkbox] { accent-color: #8b5cf6; width: 1.1rem; height: 1.1rem; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 antialiased">
+  <nav class="mx-auto max-w-4xl px-4 pt-6 flex flex-wrap justify-center gap-2 text-sm">
+    <a href="/" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Single video</a>
+    <a href="/playlist.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Profile / Playlist</a>
+    <a href="/discover.html" class="rounded-full bg-white/10 px-4 py-1.5 text-white">Discover</a>
+    <a href="/reels.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Reels Maker</a>
+    <a href="/ssflix.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">SSFlix</a>
+  </nav>
+  <main class="mx-auto max-w-4xl px-4 py-12">
+    <header class="text-center mb-10">
+      <h1 class="text-4xl font-extrabold tracking-tight text-white">Discover top videos</h1>
+      <p class="mt-2 text-slate-400">Type a topic. Get the most watched &amp; liked videos you haven't downloaded yet.</p>
+    </header>
+
+    <form id="form" class="glass rounded-2xl p-3 flex flex-col sm:flex-row gap-3">
+      <input id="q" type="text" required placeholder="chinese funny video   ·   中国搞笑视频"
+        class="flex-1 rounded-xl bg-black/40 px-4 py-3 text-white placeholder-slate-500 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-violet-500" />
+      <button id="findBtn" class="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50 transition">Find top 3</button>
+    </form>
+
+    <div class="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-400">
+      <label class="flex items-center gap-2">Source
+        <select id="source" class="rounded-lg bg-black/40 px-3 py-1.5 text-white ring-1 ring-white/10 outline-none">
+          <option value="all">YouTube + Bilibili</option>
+          <option value="youtube">YouTube</option>
+          <option value="bilibili">Bilibili (Chinese)</option>
+        </select>
+      </label>
+      <label class="flex items-center gap-2">Quality
+        <select id="quality" class="rounded-lg bg-black/40 px-3 py-1.5 text-white ring-1 ring-white/10 outline-none">
+          <option value="1080" selected>1080p</option><option value="720">720p</option><option value="480">480p</option>
+          <option value="best">Best</option><option value="audio">Audio (MP3)</option>
+        </select>
+      </label>
+      <label class="flex items-center gap-2 cursor-pointer select-none"><input id="short" type="checkbox" /> Short clips only (≤ 3 min)</label>
+      <label class="flex items-center gap-2" title="Bilibili blocks fewer searches when your own browser session is used. Open bilibili.com once in that browser.">Use my browser's login
+        <select id="browser" class="rounded-lg bg-black/40 px-3 py-1.5 text-white ring-1 ring-white/10 outline-none">
+          <option value="">No</option><option value="chrome">Chrome</option><option value="safari">Safari</option>
+          <option value="firefox">Firefox</option><option value="edge">Edge</option><option value="brave">Brave</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+      <span class="text-slate-500">My niches:</span>
+      <span id="chips" class="flex flex-wrap gap-2"></span>
+      <button id="saveNiche" type="button" class="rounded-full px-3 py-1 text-violet-300 ring-1 ring-violet-500/40 hover:bg-violet-500/10">+ save current</button>
+    </div>
+
+    <p id="error" class="hidden mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"></p>
+    <p id="loading" class="hidden mt-6 text-center text-slate-400">Searching and checking views &amp; likes… (10–30 seconds; Bilibili is slower)</p>
+
+    <section id="result" class="hidden mt-6">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <p id="info" class="text-sm text-slate-400"></p>
+        <button id="dlAll" class="rounded-xl bg-emerald-500 px-6 py-2.5 font-semibold text-black hover:bg-emerald-400 disabled:opacity-50 transition">Download all 3</button>
+      </div>
+      <div id="progress" class="hidden glass rounded-2xl mt-3 p-4">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-white/10"><div id="bar" class="h-full w-0 bg-gradient-to-r from-violet-500 to-emerald-400 transition-all"></div></div>
+        <p id="status" class="mt-2 text-sm text-slate-300"></p>
+        <ul id="errs" class="mt-2 space-y-1 text-xs text-red-300"></ul>
+      </div>
+      <ul id="grid" class="mt-4 grid gap-4 sm:grid-cols-3"></ul>
+    </section>
+
+    <section class="mt-14">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white">Download history</h2>
+        <span id="histCount" class="text-sm text-slate-500"></span>
+      </div>
+      <p class="text-xs text-slate-500 mt-1">These are never suggested or downloaded again, even if you delete the files. Click “forget” to allow one again.</p>
+      <ul id="hist" class="mt-3 divide-y divide-white/5 glass rounded-2xl text-sm"></ul>
+    </section>
+  </main>
+
+<script>
+const $ = id => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let videos = [], lastQuery = '';
+const showError = m => { $('error').textContent = m; $('error').classList.toggle('hidden', !m); };
+const fmtTime = s => s ? new Date(Math.round(s)*1000).toISOString().substr(s>=3600?11:14, s>=3600?8:5) : '';
+const fmtNum = n => n == null ? '—' : Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.detail || 'Something went wrong.');
+  return d;
+}
+const post = (path, body) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+// ---- remember settings + niches ----
+const niches = () => store.get('niches', ['chinese funny video', '中国搞笑视频']);
+function renderChips() {
+  $('chips').innerHTML = '';
+  niches().forEach(n => {
+    const b = document.createElement('span');
+    b.className = 'inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-slate-200 ring-1 ring-white/10';
+    b.innerHTML = '<button type="button" class="go hover:text-white"></button><button type="button" class="rm text-slate-500 hover:text-red-300" title="remove">×</button>';
+    b.querySelector('.go').textContent = n;
+    b.querySelector('.go').onclick = () => { $('q').value = n; $('form').requestSubmit(); };
+    b.querySelector('.rm').onclick = () => { store.set('niches', niches().filter(x => x !== n)); renderChips(); };
+    $('chips').appendChild(b);
+  });
+}
+$('saveNiche').onclick = () => { const q = $('q').value.trim(); if (q && !niches().includes(q)) { store.set('niches', [...niches(), q]); renderChips(); } };
+const prefs = store.get('discoverPrefs', {});
+$('q').value = prefs.q || ''; $('source').value = prefs.source || 'all'; $('quality').value = prefs.quality || '1080'; $('short').checked = !!prefs.short; $('browser').value = prefs.browser || '';
+const savePrefs = () => store.set('discoverPrefs', { q: $('q').value, source: $('source').value, quality: $('quality').value, short: $('short').checked, browser: $('browser').value });
+['source', 'quality', 'short', 'browser'].forEach(id => $(id).addEventListener('change', savePrefs));
+renderChips();
+
+// ---- search ----
+$('form').addEventListener('submit', async e => {
+  e.preventDefault(); showError(''); savePrefs();
+  $('result').classList.add('hidden'); $('loading').classList.remove('hidden');
+  $('findBtn').disabled = true; $('findBtn').textContent = 'Searching…';
+  try {
+    const d = await post('/api/discover/search', { query: $('q').value, source: $('source').value, short_only: $('short').checked, count: 3, browser: $('browser').value || null });
+    videos = d.videos; lastQuery = d.query;
+    $('info').textContent = `Top ${videos.length} for “${d.query}”` + (d.skipped_downloaded ? ` · ${d.skipped_downloaded} already-downloaded hidden` : '')
+      + ((d.notes || []).length ? ' · ⚠ ' + d.notes.join(' ') : '');
+    $('dlAll').textContent = `Download all ${videos.length}`; $('dlAll').disabled = false;
+    $('progress').classList.add('hidden');
+    renderGrid(); $('result').classList.remove('hidden');
+  } catch (err) { showError(err.message); }
+  $('loading').classList.add('hidden');
+  $('findBtn').disabled = false; $('findBtn').textContent = 'Find top 3';
+});
+
+function renderGrid() {
+  const g = $('grid'); g.innerHTML = '';
+  videos.forEach((v, i) => {
+    const li = document.createElement('li');
+    li.className = 'glass rounded-xl overflow-hidden flex flex-col';
+    li.innerHTML = `
+      <a class="link relative block aspect-video bg-black/50" target="_blank" rel="noopener">
+        <img class="h-full w-full object-cover" loading="lazy" referrerpolicy="no-referrer" alt="" />
+        <span class="rank absolute left-2 top-2 rounded bg-violet-600 px-2 py-0.5 text-xs font-bold text-white">#${i + 1}</span>
+        <span class="dur absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-xs"></span>
+      </a>
+      <div class="p-3 flex flex-col flex-1 gap-2">
+        <p class="ttl text-sm text-white line-clamp-2"></p>
+        <p class="meta text-xs text-slate-400"></p>
+        <p class="stats text-xs text-slate-300"></p>
+        <div class="fb rounded-lg bg-black/30 p-2.5 text-xs text-slate-400">✍️ Writing Facebook title &amp; tags…</div>
+        <button class="dl mt-auto rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-500 hover:text-black disabled:opacity-60 transition">Download</button>
+      </div>`;
+    li.querySelector('.link').href = v.url;
+    if (v.thumbnail) li.querySelector('img').src = v.thumbnail;
+    const dur = li.querySelector('.dur'); if (v.duration) dur.textContent = fmtTime(v.duration); else dur.remove();
+    li.querySelector('.ttl').textContent = v.title;
+    li.querySelector('.meta').textContent = [v.uploader, v.site].filter(Boolean).join(' · ');
+    li.querySelector('.stats').textContent = `👁 ${fmtNum(v.views)} views   ❤ ${fmtNum(v.likes)} likes`;
+    li.querySelector('.dl').onclick = () => download([i]);
+    v.btn = li.querySelector('.dl');
+    g.appendChild(li);
+    loadCaptions(v, li.querySelector('.fb'));
+  });
+}
+
+// ---- Facebook titles + hashtags ----
+function copyBtn(text, label) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'shrink-0 rounded px-1.5 py-0.5 text-[11px] text-violet-300 ring-1 ring-violet-500/40 hover:bg-violet-500/20';
+  b.textContent = label || 'copy';
+  b.onclick = async () => { try { await navigator.clipboard.writeText(text); b.textContent = '✓'; setTimeout(() => b.textContent = label || 'copy', 1200); } catch {} };
+  return b;
+}
+async function loadCaptions(v, el) {
+  try {
+    v.fb = await post('/api/captions', { title: v.title, description: v.description, tags: v.tags || [], query: lastQuery,
+                                         uploader: v.uploader, site: v.site, views: v.views, likes: v.likes });
+  } catch (err) { el.textContent = 'Could not write titles: ' + err.message; return; }
+  el.innerHTML = '';
+  const head = document.createElement('p');
+  head.className = 'mb-1.5 flex items-center justify-between font-semibold text-slate-200';
+  head.textContent = '📣 Facebook titles';
+  const eng = document.createElement('span'); eng.className = 'font-normal text-[10px] text-slate-500';
+  eng.textContent = v.fb.engine === 'claude' ? 'by Claude' : 'built-in'; head.appendChild(eng);
+  el.appendChild(head);
+  v.fb.titles.forEach(t => {
+    const row = document.createElement('div'); row.className = 'flex items-start gap-2 py-0.5';
+    const p = document.createElement('span'); p.className = 'flex-1 text-slate-200'; p.textContent = t;
+    row.append(p, copyBtn(t)); el.appendChild(row);
+  });
+  const tags = document.createElement('p'); tags.className = 'mt-2 text-violet-300 break-words'; tags.textContent = v.fb.hashtags.join(' ');
+  const btns = document.createElement('div'); btns.className = 'mt-2 flex flex-wrap gap-2';
+  btns.append(copyBtn(v.fb.hashtags.join(' '), 'copy tags'), copyBtn(v.fb.caption, 'copy full caption'));
+  el.append(tags, btns);
+}
+
+// ---- download ----
+$('dlAll').onclick = () => download(videos.map((_, i) => i).filter(i => !videos[i].done));
+
+async function download(idx) {
+  if (!idx.length) return;
+  showError('');
+  idx.forEach(i => { videos[i].btn.disabled = true; videos[i].btn.textContent = 'Queued…'; });
+  $('dlAll').disabled = true;
+  $('progress').classList.remove('hidden'); $('bar').style.width = '0%'; $('errs').innerHTML = ''; $('status').textContent = 'Starting…';
+  try {
+    const { job_id } = await post('/api/discover/download', { urls: idx.map(i => videos[i].url), query: lastQuery, quality: $('quality').value,
+      captions: Object.fromEntries(idx.filter(i => videos[i].fb).map(i => [videos[i].url, videos[i].fb.caption])) });
+    while (true) {
+      await new Promise(r => setTimeout(r, 900));
+      const j = await api('/api/progress/' + job_id);
+      const total = j.total || idx.length, finished = (j.done || 0) + (j.failed || 0) + (j.skipped || 0);
+      $('bar').style.width = ((finished + (j.status === 'done' ? 0 : (j.percent || 0) / 100)) / total * 100) + '%';
+      $('errs').innerHTML = '';
+      (j.errors || []).forEach(x => { const li = document.createElement('li'); li.textContent = `✗ ${x.url.slice(0, 70)} — ${x.error.slice(0, 120)}`; $('errs').appendChild(li); });
+      if (j.current) { const v = videos[idx[j.current - 1]]; if (v) v.btn.textContent = j.status === 'processing' ? 'Merging…' : `${j.percent || 0}%`; }
+      if (j.status === 'done') {
+        $('bar').style.width = '100%';
+        const failed = new Set((j.errors || []).map(x => x.url));
+        idx.forEach(i => { const v = videos[i]; const ok = !failed.has(v.url); v.done = ok; v.btn.textContent = ok ? '✓ Downloaded' : 'Failed – retry'; v.btn.disabled = ok; });
+        $('status').textContent = `✅ ${j.done} downloaded${j.skipped ? `, ${j.skipped} already had` : ''}${j.failed ? `, ${j.failed} failed` : ''} → ${j.folder}`;
+        break;
+      }
+      $('status').textContent = `Video ${j.current || 1} of ${total} · ${j.status === 'processing' ? 'merging…' : (j.percent || 0) + '%'}` + (j.speed ? ` · ${(j.speed / 1e6).toFixed(1)} MB/s` : '');
+    }
+  } catch (err) { showError(err.message); idx.forEach(i => { videos[i].btn.disabled = false; videos[i].btn.textContent = 'Download'; }); }
+  $('dlAll').disabled = videos.every(v => v.done);
+  loadHistory();
+}
+
+// ---- history ----
+async function loadHistory() {
+  try {
+    const { videos: h } = await api('/api/discover/history');
+    $('histCount').textContent = `${h.length} video${h.length === 1 ? '' : 's'}`;
+    const ul = $('hist'); ul.innerHTML = '';
+    if (!h.length) { ul.innerHTML = '<li class="p-4 text-slate-500">Nothing downloaded yet.</li>'; return; }
+    h.forEach(v => {
+      const li = document.createElement('li');
+      li.className = 'flex items-center gap-3 px-4 py-2.5';
+      li.innerHTML = '<div class="flex-1 min-w-0"><a class="t block truncate text-white hover:underline" target="_blank" rel="noopener"></a><p class="m text-xs text-slate-500"></p></div><button class="f text-xs text-slate-500 hover:text-red-300">forget</button>';
+      li.querySelector('.t').textContent = v.title || v.url; if (v.url) li.querySelector('.t').href = v.url;
+      li.querySelector('.m').textContent = [v.site, v.query && `“${v.query}”`, new Date(v.downloaded_at * 1000).toLocaleString()].filter(Boolean).join(' · ');
+      li.querySelector('.f').onclick = async () => { await api('/api/discover/history/' + encodeURIComponent(v.key), { method: 'DELETE' }); loadHistory(); };
+      ul.appendChild(li);
+    });
+  } catch {}
+}
+loadHistory();
+</script>
+</body>
+</html>

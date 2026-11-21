@@ -13,9 +13,12 @@
   </style>
 </head>
 <body class="min-h-screen text-slate-200 antialiased">
-  <nav class="mx-auto max-w-4xl px-4 pt-6 flex justify-center gap-2 text-sm">
+  <nav class="mx-auto max-w-4xl px-4 pt-6 flex flex-wrap justify-center gap-2 text-sm">
     <a href="/" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Single video</a>
     <a href="/playlist.html" class="rounded-full bg-white/10 px-4 py-1.5 text-white">Profile / Playlist</a>
+    <a href="/discover.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Discover</a>
+    <a href="/reels.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Reels Maker</a>
+    <a href="/ssflix.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">SSFlix</a>
   </nav>
   <main class="mx-auto max-w-4xl px-4 py-12">
     <header class="text-center mb-10">
@@ -68,6 +71,7 @@
       <div id="progress" class="hidden glass rounded-2xl mt-3 p-4">
         <div class="h-2 w-full overflow-hidden rounded-full bg-white/10"><div id="bar" class="h-full w-0 bg-gradient-to-r from-violet-500 to-emerald-400 transition-all"></div></div>
         <p id="status" class="mt-2 text-sm text-slate-300"></p>
+        <ol id="videoProgress" class="mt-4 space-y-3" aria-label="Individual video progress"></ol>
         <ul id="errs" class="mt-2 space-y-1 text-xs text-red-300"></ul>
       </div>
 
@@ -75,6 +79,7 @@
     </section>
   </main>
 
+<script src="/download-queue.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 let videos = [];
@@ -126,8 +131,11 @@ $('form').addEventListener('submit', async e => {
 
 $('dlBtn').addEventListener('click', async () => {
   showError('');
-  const urls = boxes().filter(b => b.checked).map(b => videos[+b.dataset.i].url);
-  $('dlBtn').disabled = true; $('progress').classList.remove('hidden'); $('bar').style.width = '0%'; $('errs').innerHTML = '';
+  const selected = boxes().filter(b => b.checked).map(b => videos[+b.dataset.i]);
+  const urls = selected.map(v => v.url);
+  $('videoProgress').replaceChildren();
+  const queue = new DownloadQueue($('videoProgress'), selected);
+  $('dlBtn').disabled = true; $('findBtn').disabled = true; $('all').disabled = true; boxes().forEach(b => b.disabled = true); $('progress').classList.remove('hidden'); $('bar').style.width = '0%'; $('errs').innerHTML = '';
   $('status').textContent = 'Starting…';
   try {
     const { job_id } = await api('/api/playlist/download', { method:'POST', headers:{'Content-Type':'application/json'},
@@ -135,19 +143,23 @@ $('dlBtn').addEventListener('click', async () => {
     while (true) {
       await new Promise(r => setTimeout(r, 900));
       const j = await api('/api/progress/' + job_id);
+      queue.update(j);
       const total = j.total || urls.length, finished = (j.done || 0) + (j.failed || 0);
       $('bar').style.width = ((finished + (j.status === 'done' ? 0 : (j.percent || 0) / 100)) / total * 100) + '%';
-      $('errs').innerHTML = (j.errors || []).map(x => `<li>✗ ${x.url.slice(0,70)} — ${x.error.slice(0,100)}</li>`).join('');
+      $('errs').replaceChildren(...(j.errors || []).map(x => {
+        const li = document.createElement('li'); li.textContent = `✗ ${x.url} — ${x.error}`; return li;
+      }));
+      if (j.status === 'error') throw new Error(j.error);
       if (j.status === 'done') {
         $('bar').style.width = '100%';
-        $('status').innerHTML = `✅ ${j.done} downloaded${j.failed ? `, ${j.failed} failed` : ''} → <span class="text-white">${j.folder}</span>`;
+        $('status').textContent = `${j.done} downloaded${j.failed ? `, ${j.failed} failed` : ''} → ${j.folder}`;
         break;
       }
       $('status').textContent = `Video ${j.current || 1} of ${total} · ${j.status === 'processing' ? 'merging…' : (j.percent || 0) + '%'}`
         + (j.speed ? ` · ${(j.speed/1e6).toFixed(1)} MB/s` : '');
     }
-  } catch (err) { showError(err.message); $('progress').classList.add('hidden'); }
-  updateCount();
+  } catch (err) { showError(err.message); }
+  $('findBtn').disabled = false; $('all').disabled = false; boxes().forEach(b => b.disabled = false); updateCount();
 });
 </script>
 </body>

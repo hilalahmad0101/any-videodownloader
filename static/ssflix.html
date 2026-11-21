@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SSFlix Downloader</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <style>
+    body { background: radial-gradient(1200px 600px at 50% -10%, #3b1d8f55, transparent), #0b0b14; }
+    .glass { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(12px); }
+    #selection label { min-width: 0; max-width: 100%; }
+    #selection select { max-width: 100%; }
+    input[type=checkbox] { accent-color: #8b5cf6; width: 1.1rem; height: 1.1rem; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 antialiased">
+  <nav class="mx-auto max-w-4xl px-4 pt-6 flex flex-wrap justify-center gap-2 text-sm">
+    <a href="/" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Single video</a>
+    <a href="/playlist.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Profile / Playlist</a>
+    <a href="/discover.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Discover</a>
+    <a href="/reels.html" class="rounded-full px-4 py-1.5 text-slate-400 hover:text-white hover:bg-white/5">Reels Maker</a>
+    <a href="/ssflix.html" class="rounded-full bg-white/10 px-4 py-1.5 text-white">SSFlix</a>
+  </nav>
+  <main class="mx-auto max-w-4xl px-4 py-12">
+    <header class="text-center mb-10">
+      <h1 class="text-4xl font-extrabold tracking-tight text-white">SSFlix Movies &amp; Series</h1>
+      <p class="mt-2 text-slate-400">Paste a movie or series link. Download one episode, any season, or the whole series.</p>
+    </header>
+
+    <form id="form" class="glass rounded-2xl p-3 flex flex-col sm:flex-row gap-3">
+      <input id="url" type="text" required placeholder="https://ssflix.pro/watch/serie/into-the-badlands-47450/season-2/episode-1"
+        class="flex-1 rounded-xl bg-black/40 px-4 py-3 text-white placeholder-slate-500 outline-none ring-1 ring-white/10 focus:ring-2 focus:ring-violet-500" />
+      <button id="findBtn" class="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50 transition">Find movie / episodes</button>
+    </form>
+    <p id="error" class="hidden mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300"></p>
+
+    <p class="mt-3 text-sm text-slate-400">Episodes are saved in a folder for each season. A link to an episode selects that episode first; you can switch to a season or the full series below.</p>
+    <section id="result" class="hidden mt-6">
+      <div id="selection" class="glass rounded-2xl p-4 mb-4 flex flex-wrap gap-3 items-end">
+        <label>Download
+          <select id="scope" class="block mt-1 rounded-lg bg-slate-900 px-3 py-2">
+            <option value="all">Entire series</option><option value="season">One season</option><option value="episode">One episode</option>
+          </select>
+        </label>
+        <label id="seasonLabel">Season<select id="season" class="block mt-1 rounded-lg bg-slate-900 px-3 py-2"></select></label>
+        <label id="episodeLabel">Episode<select id="episode" class="block mt-1 rounded-lg bg-slate-900 px-3 py-2"></select></label>
+      </div>
+      <div class="glass rounded-2xl p-4 flex flex-wrap items-end gap-4">
+        <div class="flex-1">
+          <label class="text-xs uppercase tracking-wider text-slate-500">Folder name <span class="normal-case">(saved in download/reels/)</span></label>
+          <input id="folder" class="mt-1 w-full rounded-xl bg-black/40 px-4 py-2.5 text-white ring-1 ring-white/10 outline-none focus:ring-2 focus:ring-violet-500" />
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-wider text-slate-500">Quality</label>
+          <select id="quality" class="mt-1 w-full rounded-xl bg-black/40 px-4 py-2.5 text-white ring-1 ring-white/10 outline-none">
+            <option value="1080" selected>1080p — Full HD</option>
+            <option value="2160">2160p — 4K</option>
+            <option value="1440">1440p — 2K</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+            <option value="best">Best available</option>
+            <option value="audio">Audio only (MP3)</option>
+          </select>
+        </div>
+        <div>
+          <label for="audioLanguage" class="text-xs uppercase tracking-wider text-slate-500">Audio language</label>
+          <select id="audioLanguage" class="mt-1 w-full rounded-xl bg-black/40 px-4 py-2.5 text-white ring-1 ring-white/10 outline-none">
+            <option value="hi" selected>Hindi dub</option>
+            <option value="ur">Urdu dub</option>
+            <option value="en">English</option>
+            <option value="auto">Source default</option>
+          </select>
+        </div>
+        <div>
+          <label for="ssflixServer" class="text-xs uppercase tracking-wider text-slate-500">Server</label>
+          <select id="ssflixServer" class="mt-1 w-full rounded-xl bg-black/40 px-4 py-2.5 text-white ring-1 ring-white/10 outline-none">
+            <option value="5" selected>Server 5</option>
+            <option value="">Automatic</option>
+            <option value="1">Server 1</option><option value="2">Server 2</option>
+            <option value="3">Server 3</option><option value="4">Server 4</option><option value="6">Server 6</option>
+          </select>
+        </div>
+        <button id="dlBtn" class="rounded-xl bg-emerald-500 px-6 py-2.5 font-semibold text-black hover:bg-emerald-400 disabled:opacity-50 transition">Download selected</button>
+      </div>
+
+      <p class="mt-3 text-sm text-slate-400">Hindi and Urdu require a labelled audio track from the source. If unavailable, the episode shows a failure instead of downloading another language.</p>
+      <div class="mt-4 flex items-center justify-between">
+        <label class="flex items-center gap-2 text-sm text-white cursor-pointer select-none">
+          <input id="all" type="checkbox" checked /> Select all
+        </label>
+        <span id="count" class="text-sm text-slate-400"></span>
+      </div>
+
+      <div id="progress" class="hidden glass rounded-2xl mt-3 p-4">
+        <div class="h-2 w-full overflow-hidden rounded-full bg-white/10"><div id="bar" class="h-full w-0 bg-gradient-to-r from-violet-500 to-emerald-400 transition-all"></div></div>
+        <p id="status" class="mt-2 text-sm text-slate-300"></p>
+        <ol id="videoProgress" class="mt-4 space-y-3" aria-label="Individual video progress"></ol>
+        <ul id="errs" class="mt-2 space-y-1 text-xs text-red-300"></ul>
+      </div>
+
+      <ul id="grid" class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></ul>
+    </section>
+  </main>
+
+<script src="/download-queue.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let videos = [];
+const trackedJobId = new URLSearchParams(location.search).get('job');
+if (trackedJobId) {
+  const panel = document.createElement('section');
+  panel.className = 'glass rounded-2xl p-4 mb-6';
+  const heading = document.createElement('h2'); heading.textContent = 'Download progress';
+  heading.className = 'text-lg text-white mb-3'; panel.appendChild(heading);
+  const back = document.createElement('a'); back.href = '/ssflix.html'; back.textContent = 'Choose more episodes';
+  back.className = 'text-sm text-violet-300 block mb-4'; panel.appendChild(back);
+  $('form').before(panel); $('form').classList.add('hidden');
+  trackDownloadJob(panel, trackedJobId);
+}
+
+function fillEpisodes(preferred) {
+  const season = +$('season').value;
+  $('episode').replaceChildren();
+  videos.filter(v => v.season === season).forEach(v => $('episode').add(new Option(v.title, v.episode)));
+  if (preferred != null && [...$('episode').options].some(o => +o.value === preferred)) $('episode').value = preferred;
+}
+function applyScope() {
+  const scope = $('scope').value;
+  $('seasonLabel').classList.toggle('hidden', scope === 'all');
+  $('episodeLabel').classList.toggle('hidden', scope !== 'episode');
+  boxes().forEach(b => {
+    const v = videos[+b.dataset.i];
+    const match = !v.season || scope === 'all' || (v.season === +$('season').value && (scope === 'season' || v.episode === +$('episode').value));
+    b.checked = match;
+    b.closest('li').classList.toggle('hidden', !match);
+  });
+  updateCount();
+}
+$('scope').addEventListener('change', applyScope);
+$('season').addEventListener('change', () => { fillEpisodes(); applyScope(); });
+$('episode').addEventListener('change', applyScope);
+const showError = m => { $('error').textContent = m; $('error').classList.toggle('hidden', !m); };
+const fmtTime = s => s ? new Date(s*1000).toISOString().substr(s>=3600?11:14, s>=3600?8:5) : '';
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.detail || 'Something went wrong.');
+  return d;
+}
+const boxes = () => [...document.querySelectorAll('.vbox')];
+function updateCount() {
+  const n = boxes().filter(b => b.checked).length;
+  $('count').textContent = `${n} of ${videos.length} selected`;
+  $('all').checked = boxes().filter(b => !b.closest('li').classList.contains('hidden')).every(b => b.checked);
+  $('all').indeterminate = n > 0 && n < videos.length;
+  $('dlBtn').disabled = n === 0;
+}
+$('all').addEventListener('change', e => { boxes().forEach(b => { if (!b.closest('li').classList.contains('hidden')) b.checked = e.target.checked; }); updateCount(); });
+
+$('form').addEventListener('submit', async e => {
+  e.preventDefault(); showError(''); $('result').classList.add('hidden');
+  $('findBtn').disabled = true; $('findBtn').textContent = 'Loading seasons…';
+  try {
+    const d = await api('/api/playlist/info', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url: $('url').value, browser: null}) });
+    if (d.site !== 'SSFlix') throw new Error('Paste an SSFlix movie or series link.');
+    videos = d.videos; $('folder').value = d.title;
+    $('selection').classList.toggle('hidden', d.kind === 'movie');
+    $('season').replaceChildren();
+    (d.seasons || []).forEach(s => $('season').add(new Option(`${s.name} (${s.count} episodes)`, s.number)));
+    if (d.selected_season != null) $('season').value = d.selected_season;
+    fillEpisodes(d.selected_episode);
+    $('scope').value = d.selected_episode != null ? 'episode' : d.selected_season != null ? 'season' : 'all';
+    const g = $('grid'); g.innerHTML = '';
+    videos.forEach((v, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<label class="glass block rounded-xl overflow-hidden cursor-pointer hover:ring-1 hover:ring-violet-500/60">
+        <div class="relative aspect-video bg-black/50">
+          <img class="h-full w-full object-cover" loading="lazy" alt="" />
+          <input type="checkbox" class="vbox absolute left-2 top-2" data-i="${i}" checked />
+          <span class="dur absolute right-2 bottom-2 rounded bg-black/70 px-1.5 py-0.5 text-xs"></span>
+        </div>
+        <p class="ttl p-3 text-sm text-white line-clamp-2"></p></label>`;
+      if (v.thumbnail) li.querySelector('img').src = v.thumbnail;
+      li.querySelector('.dur').textContent = fmtTime(v.duration);
+      if (!v.duration) li.querySelector('.dur').remove();
+      li.querySelector('.ttl').textContent = v.title;
+      li.querySelector('.vbox').addEventListener('change', updateCount);
+      g.appendChild(li);
+    });
+    applyScope(); $('progress').classList.add('hidden'); $('result').classList.remove('hidden');
+  } catch (err) { showError(err.message); }
+  $('findBtn').disabled = false; $('findBtn').textContent = 'Find movie / episodes';
+});
+
+$('dlBtn').addEventListener('click', async () => {
+  showError('');
+  const selected = boxes().filter(b => b.checked).map(b => videos[+b.dataset.i]);
+  const urls = selected.map(v => v.url);
+  $('videoProgress').replaceChildren();
+  const queue = new DownloadQueue($('videoProgress'), selected);
+  $('dlBtn').disabled = true; $('findBtn').disabled = true; $('ssflixServer').disabled = true; $('audioLanguage').disabled = true; $('scope').disabled = true; $('season').disabled = true; $('episode').disabled = true; $('all').disabled = true; boxes().forEach(b => b.disabled = true); $('progress').classList.remove('hidden'); $('bar').style.width = '0%'; $('errs').innerHTML = '';
+  $('status').textContent = 'Starting…';
+  try {
+    const { job_id } = await api('/api/playlist/download', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ urls, folder: $('folder').value, quality: $('quality').value, audio_language: $('audioLanguage').value, ssflix_server: $('ssflixServer').value ? +$('ssflixServer').value : null, browser: null }) });
+    history.replaceState(null, '', '?job=' + encodeURIComponent(job_id));
+    while (true) {
+      await new Promise(r => setTimeout(r, 900));
+      const j = await api('/api/progress/' + job_id);
+      queue.update(j);
+      const total = j.total || urls.length, finished = (j.done || 0) + (j.failed || 0);
+      $('bar').style.width = ((finished + (j.status === 'done' ? 0 : (j.percent || 0) / 100)) / total * 100) + '%';
+      $('errs').replaceChildren(...(j.errors || []).map(x => {
+        const li = document.createElement('li'); li.textContent = `✗ ${x.url} — ${x.error}`; return li;
+      }));
+      if (j.status === 'error') throw new Error(j.error);
+      if (j.status === 'done') {
+        $('bar').style.width = '100%';
+        $('status').textContent = `${j.done} downloaded${j.failed ? `, ${j.failed} failed` : ''} → ${j.folder}`;
+        break;
+      }
+      $('status').textContent = `Video ${j.current || 1} of ${total} · ${j.status === 'starting' ? 'finding player…' : j.status === 'processing' ? 'merging…' : (j.percent || 0) + '%'}`
+        + (j.speed ? ` · ${(j.speed/1e6).toFixed(1)} MB/s` : '');
+    }
+  } catch (err) { showError(err.message); }
+  $('findBtn').disabled = false; $('ssflixServer').disabled = false; $('audioLanguage').disabled = false; $('scope').disabled = false; $('season').disabled = false; $('episode').disabled = false; $('all').disabled = false; boxes().forEach(b => b.disabled = false); updateCount();
+});
+</script>
+</body>
+</html>
